@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
+const ROLES = require("../constants/roles");
 const User = require("../models/user.model");
 
 async function main() {
@@ -22,7 +23,7 @@ async function main() {
   await User.create({
     username,
     password: hashedPassword,
-    role: "admin",
+    role: ROLES.ADMIN,
     isApprove: true,
   });
 

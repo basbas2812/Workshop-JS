@@ -2,6 +2,8 @@ var express = require("express");
 var mongoose = require("mongoose");
 var router = express.Router();
 
+var ROLES = require("../../../constants/roles");
+var STATUS = require("../../../constants/status");
 var Product = require("../../../models/product.model");
 var Order = require("../../../models/order.model");
 var auth = require("../../../middleware/jwt.decode");
@@ -19,9 +21,15 @@ router.get("/", auth, async function (req, res) {
       "createdBy",
       "username role",
     );
-    return response(res, 200, "success", products.map(publicProduct));
+
+    if (products.length === 0) {
+      return response(res, 200, STATUS.NoMany, []);
+    }
+
+    const message = products.length > 1 ? STATUS.Havemany : STATUS.HaveOne;
+    return response(res, 200, message, products.map(publicProduct));
   } catch (error) {
-    return response(res, 500, "unknown error", null);
+    return response(res, 500, STATUS.DontKnowIssue, null);
   }
 });
 
@@ -30,63 +38,76 @@ router.get("/:id/orders", auth, async function (req, res) {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
-      return response(res, 400, "product not found", null);
+      return response(res, 400, STATUS.NotSuccess, null);
     }
 
-    if (req.user.role === "shop" && String(product.createdBy) !== req.user.id) {
-      return response(res, 401, "permission denied", null);
+    if (
+      req.user.role === ROLES.SHOP &&
+      String(product.createdBy) !== req.user.id
+    ) {
+      return response(res, 401, STATUS.NotHavePermission, null);
     }
 
     const orders = await Order.find({ productId: req.params.id })
       .populate("productId", "productName quantity price isActive")
       .populate("userId", "username role");
 
-    return response(res, 200, "success", orders.map(publicOrder));
+    if (orders.length === 0) {
+      return response(res, 200, STATUS.NoMany, []);
+    }
+
+    const message = orders.length > 1 ? STATUS.Havemany : STATUS.HaveOne;
+    return response(res, 200, message, orders.map(publicOrder));
   } catch (error) {
-    return response(res, 500, "unknown error", null);
+    return response(res, 500, STATUS.DontKnowIssue, null);
   }
 });
 
 // add order to product
-router.post("/:id/orders", auth, allowRoles("user"), async function (req, res) {
-  try {
-    const { quantity } = req.body;
+router.post(
+  "/:id/orders",
+  auth,
+  allowRoles(ROLES.USER),
+  async function (req, res) {
+    try {
+      const { quantity } = req.body;
 
-    if (!quantity || quantity <= 0) {
-      return response(res, 400, "quantity must be greater than 0", null);
+      if (!quantity || quantity <= 0) {
+        return response(res, 400, STATUS.NotSuccess, null);
+      }
+
+      const product = await Product.findOne({
+        _id: req.params.id,
+        isActive: true,
+      });
+
+      if (!product) {
+        return response(res, 400, STATUS.NotSuccess, null);
+      }
+
+      if (quantity > product.quantity) {
+        return response(res, 400, STATUS.NotSuccess, null);
+      }
+
+      const order = await Order.create({
+        productId: product._id,
+        userId: req.user.id,
+        quantity,
+      });
+
+      product.quantity -= quantity;
+      await product.save();
+
+      const result = await Order.findById(order._id)
+        .populate("productId", "productName quantity price isActive")
+        .populate("userId", "username role");
+
+      return response(res, 201, STATUS.SaveSuccess, publicOrder(result));
+    } catch (error) {
+      return response(res, 500, STATUS.DontKnowIssue, null);
     }
-
-    const product = await Product.findOne({
-      _id: req.params.id,
-      isActive: true,
-    });
-
-    if (!product) {
-      return response(res, 400, "product not found", null);
-    }
-
-    if (quantity > product.quantity) {
-      return response(res, 400, "stock not enough", null);
-    }
-
-    const order = await Order.create({
-      productId: product._id,
-      userId: req.user.id,
-      quantity,
-    });
-
-    product.quantity -= quantity;
-    await product.save();
-
-    const result = await Order.findById(order._id)
-      .populate("productId", "productName quantity price isActive")
-      .populate("userId", "username role");
-
-    return response(res, 201, "success", publicOrder(result));
-  } catch (error) {
-    return response(res, 500, "unknown error", null);
-  }
-});
+  },
+);
 
 // get product by id
 router.get("/:id", auth, async function (req, res) {
@@ -97,31 +118,26 @@ router.get("/:id", auth, async function (req, res) {
     }).populate("createdBy", "username role");
 
     if (!product) {
-      return response(res, 400, "product not found", null);
+      return response(res, 400, STATUS.NoOne, null);
     }
 
-    return response(res, 200, "success", publicProduct(product));
+    return response(res, 200, STATUS.HaveOne, publicProduct(product));
   } catch (error) {
-    return response(res, 500, "unknown error", null);
+    return response(res, 500, STATUS.DontKnowIssue, null);
   }
 });
 
 // add product
-router.post("/", auth, allowRoles("shop"), async function (req, res) {
+router.post("/", auth, allowRoles(ROLES.SHOP), async function (req, res) {
   try {
     const { productName, quantity, price } = req.body;
 
     if (!productName || quantity === undefined) {
-      return response(res, 400, "productName and quantity are required", null);
+      return response(res, 400, STATUS.NotSuccess, null);
     }
 
     if (quantity < 0 || price < 0) {
-      return response(
-        res,
-        400,
-        "quantity and price must not be negative",
-        null,
-      );
+      return response(res, 400, STATUS.NotSuccess, null);
     }
 
     const product = await Product.create({
@@ -132,33 +148,33 @@ router.post("/", auth, allowRoles("shop"), async function (req, res) {
       createdBy: req.user.id,
     });
 
-    return response(res, 201, "success", publicProduct(product));
+    return response(res, 201, STATUS.SaveSuccess, publicProduct(product));
   } catch (error) {
-    return response(res, 500, "unknown error", null);
+    return response(res, 500, STATUS.DontKnowIssue, null);
   }
 });
 
 // update product
-router.put("/:id", auth, allowRoles("shop"), async function (req, res) {
+router.put("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
   try {
     const { productName, quantity, price } = req.body;
 
     const product = await Product.findById(req.params.id);
 
     if (!product || !product.isActive) {
-      return response(res, 400, "product not found", null);
+      return response(res, 400, STATUS.NotSuccess, null);
     }
 
     if (String(product.createdBy) !== req.user.id) {
-      return response(res, 401, "permission denied", null);
+      return response(res, 401, STATUS.NotHavePermission, null);
     }
 
     if (quantity !== undefined && quantity < 0) {
-      return response(res, 400, "quantity must not be negative", null);
+      return response(res, 400, STATUS.NotSuccess, null);
     }
 
     if (price !== undefined && price < 0) {
-      return response(res, 400, "price must not be negative", null);
+      return response(res, 400, STATUS.NotSuccess, null);
     }
 
     if (productName !== undefined) product.productName = productName;
@@ -167,31 +183,31 @@ router.put("/:id", auth, allowRoles("shop"), async function (req, res) {
 
     await product.save();
 
-    return response(res, 200, "success", publicProduct(product));
+    return response(res, 200, STATUS.Success, publicProduct(product));
   } catch (error) {
-    return response(res, 500, "unknown error", null);
+    return response(res, 500, STATUS.DontKnowIssue, null);
   }
 });
 
 // soft delete product
-router.delete("/:id", auth, allowRoles("shop"), async function (req, res) {
+router.delete("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product || !product.isActive) {
-      return response(res, 400, "product not found", null);
+      return response(res, 400, STATUS.NotSuccess, null);
     }
 
     if (String(product.createdBy) !== req.user.id) {
-      return response(res, 401, "permission denied", null);
+      return response(res, 401, STATUS.NotHavePermission, null);
     }
 
     product.isActive = false;
     await product.save();
 
-    return response(res, 200, "success", publicProduct(product));
+    return response(res, 200, STATUS.Success, publicProduct(product));
   } catch (error) {
-    return response(res, 500, "unknown error", null);
+    return response(res, 500, STATUS.DontKnowIssue, null);
   }
 });
 

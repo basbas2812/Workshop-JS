@@ -1,3 +1,4 @@
+const ROLES = require("../constants/roles");
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
@@ -7,8 +8,8 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ["user", "shop", "admin"],
-      default: "user",
+      enum: Object.values(ROLES),
+      default: ROLES.USER,
     },
     isApprove: { type: Boolean, default: false },
   },
