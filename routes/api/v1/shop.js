@@ -40,7 +40,7 @@ router.get("/", async function (req, res) {
 });
 
 // get all orders of a product
-router.get("/:id/orders", auth, async function (req, res) {
+router.get("/:id/orders", async function (req, res) {
   try {
     if (!isValidObjectId(req.params.id)) {
       return response(res, 400, STATUS.NotSuccess, null);
