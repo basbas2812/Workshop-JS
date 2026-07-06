@@ -6,14 +6,15 @@ var STATUS = require("../../../constants/status");
 var Product = require("../../../models/product.model");
 var Order = require("../../../models/order.model");
 var auth = require("../../../middleware/jwt.decode");
-var allowRoles = require("../../../middleware/role");
 var {
   jsonResponse: response,
   publicOrder,
 } = require("../../../json/json.response");
 
+router.use(auth);
+
 // get all orders
-router.get("/", auth, async function (req, res) {
+router.get("/", async function (req, res) {
   try {
     let filter = {};
 

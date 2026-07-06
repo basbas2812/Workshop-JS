@@ -14,12 +14,14 @@ var {
   publicOrder,
 } = require("../../../json/json.response");
 
+router.use(auth);
+
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
 
 // get all active products
-router.get("/", auth, async function (req, res) {
+router.get("/", async function (req, res) {
   try {
     const products = await Product.find({ isActive: true }).populate(
       "createdBy",
@@ -72,57 +74,52 @@ router.get("/:id/orders", auth, async function (req, res) {
 });
 
 // add order to product
-router.post(
-  "/:id/orders",
-  auth,
-  allowRoles(ROLES.USER),
-  async function (req, res) {
-    try {
-      const { quantity } = req.body;
+router.post("/:id/orders", allowRoles(ROLES.USER), async function (req, res) {
+  try {
+    const { quantity } = req.body;
 
-      if (!isValidObjectId(req.params.id)) {
-        return response(res, 400, STATUS.NotSuccess, null);
-      }
-
-      if (!quantity || quantity <= 0) {
-        return response(res, 400, STATUS.NotSuccess, null);
-      }
-
-      const product = await Product.findOne({
-        _id: req.params.id,
-        isActive: true,
-      });
-
-      if (!product) {
-        return response(res, 400, STATUS.NotSuccess, null);
-      }
-
-      if (quantity > product.quantity) {
-        return response(res, 400, STATUS.NotSuccess, null);
-      }
-
-      const order = await Order.create({
-        productId: product._id,
-        userId: req.user.id,
-        quantity,
-      });
-
-      product.quantity -= quantity;
-      await product.save();
-
-      const result = await Order.findById(order._id)
-        .populate("productId", "productName quantity price isActive")
-        .populate("userId", "username role");
-
-      return response(res, 201, STATUS.SaveSuccess, publicOrder(result));
-    } catch (error) {
-      return response(res, 500, STATUS.DontKnowIssue, null);
+    if (!isValidObjectId(req.params.id)) {
+      return response(res, 400, STATUS.NotSuccess, null);
     }
-  },
-);
+
+    if (!quantity || quantity <= 0) {
+      return response(res, 400, STATUS.NotSuccess, null);
+    }
+
+    const product = await Product.findOne({
+      _id: req.params.id,
+      isActive: true,
+    });
+
+    if (!product) {
+      return response(res, 400, STATUS.NotSuccess, null);
+    }
+
+    if (quantity > product.quantity) {
+      return response(res, 400, STATUS.NotSuccess, null);
+    }
+
+    const order = await Order.create({
+      productId: product._id,
+      userId: req.user.id,
+      quantity,
+    });
+
+    product.quantity -= quantity;
+    await product.save();
+
+    const result = await Order.findById(order._id)
+      .populate("productId", "productName quantity price isActive")
+      .populate("userId", "username role");
+
+    return response(res, 201, STATUS.SaveSuccess, publicOrder(result));
+  } catch (error) {
+    return response(res, 500, STATUS.DontKnowIssue, null);
+  }
+});
 
 // get product by id
-router.get("/:id", auth, async function (req, res) {
+router.get("/:id", async function (req, res) {
   try {
     if (!isValidObjectId(req.params.id)) {
       return response(res, 400, STATUS.NoOne, null);
@@ -144,7 +141,7 @@ router.get("/:id", auth, async function (req, res) {
 });
 
 // add product
-router.post("/", auth, allowRoles(ROLES.SHOP), async function (req, res) {
+router.post("/", allowRoles(ROLES.SHOP), async function (req, res) {
   try {
     const { productName, quantity, price } = req.body;
 
@@ -171,7 +168,7 @@ router.post("/", auth, allowRoles(ROLES.SHOP), async function (req, res) {
 });
 
 // update product
-router.put("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
+router.put("/:id", allowRoles(ROLES.SHOP), async function (req, res) {
   try {
     const { productName, quantity, price } = req.body;
 
@@ -210,7 +207,7 @@ router.put("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
 });
 
 // soft delete product
-router.delete("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
+router.delete("/:id", allowRoles(ROLES.SHOP), async function (req, res) {
   try {
     if (!isValidObjectId(req.params.id)) {
       return response(res, 400, STATUS.NotSuccess, null);
