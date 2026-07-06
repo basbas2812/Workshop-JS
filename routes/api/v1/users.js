@@ -12,6 +12,10 @@ var {
   publicUser,
 } = require("../../../json/json.response");
 
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
+
 // pending approve list
 router.get(
   "/pending",
@@ -40,6 +44,10 @@ router.put(
   allowRoles(ROLES.ADMIN),
   async function (req, res) {
     try {
+      if (!isValidObjectId(req.params.id)) {
+        return response(res, 400, STATUS.NotSuccess, null);
+      }
+
       const user = await User.findById(req.params.id);
       if (!user) {
         return response(res, 400, STATUS.NotSuccess, null);

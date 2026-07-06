@@ -14,6 +14,10 @@ var {
   publicOrder,
 } = require("../../../json/json.response");
 
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
+
 // get all active products
 router.get("/", auth, async function (req, res) {
   try {
@@ -36,6 +40,10 @@ router.get("/", auth, async function (req, res) {
 // get all orders of a product
 router.get("/:id/orders", auth, async function (req, res) {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return response(res, 400, STATUS.NotSuccess, null);
+    }
+
     const product = await Product.findById(req.params.id);
     if (!product) {
       return response(res, 400, STATUS.NotSuccess, null);
@@ -71,6 +79,10 @@ router.post(
   async function (req, res) {
     try {
       const { quantity } = req.body;
+
+      if (!isValidObjectId(req.params.id)) {
+        return response(res, 400, STATUS.NotSuccess, null);
+      }
 
       if (!quantity || quantity <= 0) {
         return response(res, 400, STATUS.NotSuccess, null);
@@ -112,6 +124,10 @@ router.post(
 // get product by id
 router.get("/:id", auth, async function (req, res) {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return response(res, 400, STATUS.NoOne, null);
+    }
+
     const product = await Product.findOne({
       _id: req.params.id,
       isActive: true,
@@ -159,6 +175,10 @@ router.put("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
   try {
     const { productName, quantity, price } = req.body;
 
+    if (!isValidObjectId(req.params.id)) {
+      return response(res, 400, STATUS.NotSuccess, null);
+    }
+
     const product = await Product.findById(req.params.id);
 
     if (!product || !product.isActive) {
@@ -192,6 +212,10 @@ router.put("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
 // soft delete product
 router.delete("/:id", auth, allowRoles(ROLES.SHOP), async function (req, res) {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return response(res, 400, STATUS.NotSuccess, null);
+    }
+
     const product = await Product.findById(req.params.id);
 
     if (!product || !product.isActive) {
