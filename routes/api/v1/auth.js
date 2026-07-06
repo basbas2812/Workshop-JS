@@ -4,18 +4,7 @@ var jwt = require("jsonwebtoken");
 var router = express.Router();
 
 var User = require("../../../models/user.model");
-var response = require("../../../json/json.response");
-
-function publicUser(user) {
-  return {
-    id: user._id,
-    username: user.username,
-    role: user.role,
-    isApprove: user.isApprove,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
-}
+var { jsonResponse: response, publicUser } = require("../../../json/json.response");
 
 // register
 router.post("/register", async function (req, res) {

@@ -6,7 +6,11 @@ var Product = require("../../../models/product.model");
 var Order = require("../../../models/order.model");
 var auth = require("../../../middleware/jwt.decode");
 var allowRoles = require("../../../middleware/role");
-var response = require("../../../json/json.response");
+var {
+  jsonResponse: response,
+  publicProduct,
+  publicOrder,
+} = require("../../../json/json.response");
 
 // get all active products
 router.get("/", auth, async function (req, res) {
@@ -15,7 +19,7 @@ router.get("/", auth, async function (req, res) {
       "createdBy",
       "username role",
     );
-    return response(res, 200, "success", products);
+    return response(res, 200, "success", products.map(publicProduct));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }
@@ -37,7 +41,7 @@ router.get("/:id/orders", auth, async function (req, res) {
       .populate("productId", "productName quantity price isActive")
       .populate("userId", "username role");
 
-    return response(res, 200, "success", orders);
+    return response(res, 200, "success", orders.map(publicOrder));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }
@@ -78,7 +82,7 @@ router.post("/:id/orders", auth, allowRoles("user"), async function (req, res) {
       .populate("productId", "productName quantity price isActive")
       .populate("userId", "username role");
 
-    return response(res, 201, "success", result);
+    return response(res, 201, "success", publicOrder(result));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }
@@ -96,7 +100,7 @@ router.get("/:id", auth, async function (req, res) {
       return response(res, 400, "product not found", null);
     }
 
-    return response(res, 200, "success", product);
+    return response(res, 200, "success", publicProduct(product));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }
@@ -128,7 +132,7 @@ router.post("/", auth, allowRoles("shop"), async function (req, res) {
       createdBy: req.user.id,
     });
 
-    return response(res, 201, "success", product);
+    return response(res, 201, "success", publicProduct(product));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }
@@ -163,7 +167,7 @@ router.put("/:id", auth, allowRoles("shop"), async function (req, res) {
 
     await product.save();
 
-    return response(res, 200, "success", product);
+    return response(res, 200, "success", publicProduct(product));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }
@@ -185,7 +189,7 @@ router.delete("/:id", auth, allowRoles("shop"), async function (req, res) {
     product.isActive = false;
     await product.save();
 
-    return response(res, 200, "success", product);
+    return response(res, 200, "success", publicProduct(product));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }

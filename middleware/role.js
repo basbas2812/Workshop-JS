@@ -1,4 +1,4 @@
-const response = require("../json/json.response");
+const { jsonResponse: response } = require("../json/json.response");
 
 function allowRoles(...roles) {
   return (req, res, next) => {

@@ -11,10 +11,25 @@ function publicUser(user) {
     id: user._id,
     username: user.username,
     role: user.role,
-    isApprove: user.isApprove,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
   };
 }
 
-((module.exports = jsonResponse), publicUser);
+function publicProduct(product) {
+  return {
+    id: product._id,
+    productName: product.productName,
+    quantity: product.quantity,
+    price: product.price,
+  };
+}
+
+function publicOrder(order) {
+  return {
+    id: order._id,
+    productName: order.productId?.productName,
+    quantity: order.quantity,
+    username: order.userId?.username,
+  };
+}
+
+module.exports = { jsonResponse, publicUser, publicProduct, publicOrder };

@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const response = require("../json/json.response");
+const { jsonResponse: response } = require("../json/json.response");
 
 module.exports = (req, res, next) => {
   try {

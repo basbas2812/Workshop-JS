@@ -9,7 +9,7 @@ require("./db");
 
 var indexRouter = require("./routes/index");
 var apiRouter = require("./routes/api");
-var response = require("./json/json.response");
+var { jsonResponse: response } = require("./json/json.response");
 
 var app = express();
 

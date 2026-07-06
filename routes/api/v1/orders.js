@@ -5,7 +5,10 @@ var Product = require("../../../models/product.model");
 var Order = require("../../../models/order.model");
 var auth = require("../../../middleware/jwt.decode");
 var allowRoles = require("../../../middleware/role");
-var response = require("../../../json/json.response");
+var {
+  jsonResponse: response,
+  publicOrder,
+} = require("../../../json/json.response");
 
 // get all orders
 router.get("/", auth, async function (req, res) {
@@ -27,7 +30,7 @@ router.get("/", auth, async function (req, res) {
       .populate("productId", "productName quantity price isActive")
       .populate("userId", "username role");
 
-    return response(res, 200, "success", orders);
+    return response(res, 200, "success", orders.map(publicOrder));
   } catch (error) {
     return response(res, 500, "unknown error", null);
   }
