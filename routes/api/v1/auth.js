@@ -74,7 +74,7 @@ router.post("/login", async function (req, res) {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "1h" },
     );
 
     return response(res, 200, STATUS.Success, {
