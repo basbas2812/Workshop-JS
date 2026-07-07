@@ -52,7 +52,7 @@ router.get("/:id/orders", async function (req, res) {
     });
 
     if (!product) {
-      return response(res, 200, STATUS.NoMany, null);
+      return response(res, 200, STATUS.NoMany, []);
     }
 
     if (
