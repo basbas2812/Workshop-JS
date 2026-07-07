@@ -46,9 +46,13 @@ router.get("/:id/orders", async function (req, res) {
       return response(res, 400, STATUS.NotSuccess, null);
     }
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({
+      _id: req.params.id,
+      isActive: true,
+    });
+
     if (!product) {
-      return response(res, 400, STATUS.NotSuccess, null);
+      return response(res, 200, STATUS.NoMany, null);
     }
 
     if (

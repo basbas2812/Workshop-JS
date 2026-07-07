@@ -23,10 +23,19 @@ router.get("/", async function (req, res) {
     }
 
     if (req.user.role === ROLES.SHOP) {
-      const products = await Product.find({ createdBy: req.user.id }).select(
+      const products = await Product.find({
+        createdBy: req.user.id,
+        isActive: true,
+      }).select("_id");
+      filter.productId = { $in: products.map((product) => product._id) };
+    } else {
+      const activeProducts = await Product.find({ isActive: true }).select(
         "_id",
       );
-      filter.productId = { $in: products.map((product) => product._id) };
+      filter.productId = {
+        ...filter.productId,
+        $in: activeProducts.map((product) => product._id),
+      };
     }
 
     const orders = await Order.find(filter)
