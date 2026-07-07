@@ -20,6 +20,7 @@ function publicProduct(product) {
     productName: product.productName,
     quantity: product.quantity,
     price: product.price,
+    createdBy: product.createdBy,
   };
 }
 
